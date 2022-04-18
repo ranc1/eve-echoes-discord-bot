@@ -1,7 +1,7 @@
 import discord
 import asyncio
-import monitor
-import winsound
+from utils import monitor
+# import winsound
 import logging
 import os
 import time
@@ -15,20 +15,23 @@ logger.setLevel(logging.INFO)
 
 def sound_alarm(count):
     for i in range(count):
-        winsound.Beep(440, 250)
-        # For MacOS: os.system('play --no-show-progress --null synth 0.25 sine 440')
+        # winsound.Beep(440, 250)
+        os.system('play --no-show-progress --null synth 0.25 sine 440')
 
 
 class MonitorCog(commands.Cog):
-    def __init__(self, bot, sound=True, corp_report=True, debug_mode=False):
+    def __init__(self, bot, sound=True, debug_mode=False, discord_report_channel=None):
         self.bot = bot
-        self.corp_report = corp_report
-        self.discord_report = True
         self.sound = sound
         self.debug_mode = debug_mode
         self.prev_hostile_count = 0
         self.prev_neutral_count = 0
         self.last_successful_scan = time.time()
+        if discord_report_channel:
+            self.discord_report_channel = discord_report_channel
+            self.discord_report = True
+        else:
+            self.discord_report = False
 
         monitor_logger = logging.getLogger('eve-monitor')
         monitor_logger.setLevel(logging.DEBUG) if self.debug_mode else monitor_logger.setLevel(logging.INFO)
@@ -36,7 +39,7 @@ class MonitorCog(commands.Cog):
         self.run_bot_task.start()
 
     async def report_discord(self, local_standings):
-        channel = self.bot.get_channel(918237769447399456)
+        channel = self.bot.get_channel(self.discord_report_channel)
         hostile_count = len(local_standings[monitor.HOSTILE])
         neutral_count = len(local_standings[monitor.NEUTRAL])
 
@@ -44,9 +47,9 @@ class MonitorCog(commands.Cog):
             await channel.send('Clear')
         else:
             message = f'Hostile: {hostile_count}, Neutral: {neutral_count}'
-            await channel.send(message, file=discord.File('tmp/screen_local.png'))
+            await channel.send(message, file=discord.File(f'{monitor.SCREENSHOT_DIR}/screen_local.png'))
 
-    @commands.command()
+    @commands.command(help='Monitor module health and status report.')
     async def ping(self, ctx):
         if self.debug_mode:
             await ctx.send('Currently in Debug Mode...')
@@ -56,7 +59,7 @@ class MonitorCog(commands.Cog):
             discord_report_status = 'Enabled' if self.discord_report else 'Disabled'
             await ctx.send(f'Online. Discord report: {discord_report_status}')
 
-    @commands.command()
+    @commands.command(help='Shutdown Monitor module.')
     async def shutdown(self, ctx):
         if self.discord_report:
             await ctx.send("You didn't actually think I will let you shut me down, did you? Anyways, I will leave you alone for now.")
@@ -64,7 +67,7 @@ class MonitorCog(commands.Cog):
         else:
             await ctx.send("Dude, I am already down. What more do you want from me?")
 
-    @commands.command()
+    @commands.command(help='Resume Monitor module.')
     async def resume(self, ctx):
         if self.discord_report:
             await ctx.send('?')
@@ -81,9 +84,9 @@ class MonitorCog(commands.Cog):
             friendly_count = local_details[monitor.FRIENDLY]
             total_count = hostile_count + neutral_count + friendly_count
 
-            alarm_sounds = min(hostile_count + neutral_count, 3)
-            if self.sound and alarm_sounds > 0:
-                sound_alarm(alarm_sounds)
+            sound_times = min(hostile_count + neutral_count, 3)
+            if self.sound and sound_times > 0:
+                sound_alarm(sound_times)
 
             if hostile_count != self.prev_hostile_count or neutral_count != self.prev_neutral_count or total_count >= 7:
                 local_standings = monitor.identify_local_in_chat()
@@ -96,23 +99,21 @@ class MonitorCog(commands.Cog):
                 logger.info('=========================================================================')
 
                 if chat_hostile_count != self.prev_hostile_count or chat_neutral_count != self.prev_neutral_count:
-                    if self.discord_report:
-                        await self.report_discord(local_standings)
-
-                    if self.corp_report:
+                    if not self.debug_mode:
+                        # Only report if not in debug mode.
                         monitor.report(local_standings)
-                    else:
-                        # After identify_local_in_chat, the chat is still open.
-                        monitor.close_chat()
-                else:
-                    # After identify_local_in_chat, the chat is still open.
-                    monitor.close_chat()
+
+                        if self.discord_report:
+                            await self.report_discord(local_standings)
+
+                # After identify_local_in_chat and/or report, the chat is still open.
+                monitor.close_chat()
 
                 if (hostile_count != chat_hostile_count or neutral_count != chat_neutral_count or friendly_count != chat_friendly_count) and self.debug_mode:
-                    path = 'verify/' + str(int(time.time()))
+                    path = f'verify/{str(int(time.time()))}'
                     os.mkdir(path)
-                    copy2('tmp/screen_overview.png', path + '/' + str(hostile_count) + '-' + str(neutral_count) + '-' + str(friendly_count) + '-overview.png')
-                    copy2('tmp/screen_chat.png', path + '/' + str(chat_hostile_count) + '-' + str(chat_neutral_count) + '-' + str(chat_friendly_count) + '-chat.png')
+                    copy2(f'{monitor.SCREENSHOT_DIR}/screen_overview.png', f'{path}/{str(hostile_count)}-{str(neutral_count)}-{str(friendly_count)}-overview.png')
+                    copy2(f'{monitor.SCREENSHOT_DIR}/screen_chat.png', f'{path}/{str(chat_hostile_count)}-{str(chat_neutral_count)}-{str(chat_friendly_count)}-chat.png')
 
                 self.prev_hostile_count = chat_hostile_count
                 self.prev_neutral_count = chat_neutral_count
