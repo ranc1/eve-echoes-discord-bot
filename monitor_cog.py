@@ -76,6 +76,7 @@ class MonitorCog(commands.Cog):
 
             if hostile_count > 0 or neutral_count > 0:
                 if self.sound:
+                    # For MacOS: os.system('play --no-show-progress --null synth 0.25 sine 440')
                     winsound.Beep(440, 250)
 
             if hostile_count != self.prev_hostile_count or neutral_count != self.prev_neutral_count or total_count >= 7:
