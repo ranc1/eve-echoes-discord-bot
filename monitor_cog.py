@@ -13,6 +13,12 @@ logger = logging.getLogger('eve-monitor-bot')
 logger.setLevel(logging.INFO)
 
 
+def sound_alarm(count):
+    for i in range(count):
+        winsound.Beep(440, 250)
+        # For MacOS: os.system('play --no-show-progress --null synth 0.25 sine 440')
+
+
 class MonitorCog(commands.Cog):
     def __init__(self, bot, sound=True, corp_report=True, debug_mode=False):
         self.bot = bot
@@ -47,7 +53,8 @@ class MonitorCog(commands.Cog):
         elif time.time() - self.last_successful_scan > 60:
             await ctx.send(f'Service Unavailable! Last scan: {time.ctime(self.last_successful_scan)} PST')
         else:
-            await ctx.send('Online')
+            discord_report_status = 'Enabled' if self.discord_report else 'Disabled'
+            await ctx.send(f'Online. Discord report: {discord_report_status}')
 
     @commands.command()
     async def shutdown(self, ctx):
@@ -74,10 +81,9 @@ class MonitorCog(commands.Cog):
             friendly_count = local_details[monitor.FRIENDLY]
             total_count = hostile_count + neutral_count + friendly_count
 
-            if hostile_count > 0 or neutral_count > 0:
-                if self.sound:
-                    # For MacOS: os.system('play --no-show-progress --null synth 0.25 sine 440')
-                    winsound.Beep(440, 250)
+            alarm_sounds = min(hostile_count + neutral_count, 3)
+            if self.sound and alarm_sounds > 0:
+                sound_alarm(alarm_sounds)
 
             if hostile_count != self.prev_hostile_count or neutral_count != self.prev_neutral_count or total_count >= 7:
                 local_standings = monitor.identify_local_in_chat()
