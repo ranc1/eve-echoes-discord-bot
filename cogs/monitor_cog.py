@@ -14,9 +14,11 @@ logger.setLevel(logging.INFO)
 
 
 def sound_alarm(count):
+    frequency = 440
+    duration_in_millis = 250
     for i in range(count):
-        # winsound.Beep(440, 250)
-        os.system('play --no-show-progress --null synth 0.25 sine 440')
+        # winsound.Beep(frequency, int(duration_in_millis))
+        os.system(f'play --no-show-progress --null synth {duration_in_millis / 1000} sine {frequency}')
 
 
 class MonitorCog(commands.Cog):
@@ -53,7 +55,7 @@ class MonitorCog(commands.Cog):
     async def ping(self, ctx):
         if self.debug_mode:
             await ctx.send('Currently in Debug Mode...')
-        elif time.time() - self.last_successful_scan > 60:
+        elif self.__scan_unhealthy():
             await ctx.send(f'Service Unavailable! Last scan: {time.ctime(self.last_successful_scan)} PST')
         else:
             discord_report_status = 'Enabled' if self.discord_report else 'Disabled'
@@ -120,13 +122,17 @@ class MonitorCog(commands.Cog):
 
             self.last_successful_scan = time.time()
 
-        if self.prev_hostile_count + self.prev_neutral_count == 0:
-            await asyncio.sleep(10)  # local safe. additional sleep to save CPU.
-        else:
-            await asyncio.sleep(5)
+        if self.__scan_unhealthy():
+            sound_alarm(3)
+
+        sleep_time = 10 if self.prev_hostile_count + self.prev_neutral_count == 0 else 5  # local safe. additional sleep to save CPU.
+        await asyncio.sleep(sleep_time)
 
     @run_bot_task.before_loop
     async def before_run_bot_task(self):
         await self.bot.wait_until_ready()
         monitor.initialize_device()
         logger.info('Device connected. Start monitoring...')
+
+    def __scan_unhealthy(self):
+        return time.time() - self.last_successful_scan > 60

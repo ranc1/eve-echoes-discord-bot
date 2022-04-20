@@ -96,12 +96,12 @@ def identify_standing(name_image):
     elif Template(f"{RESOURCE_DIR}/red_mark.png", threshold=0.82, resolution=(w, h)).match_all_in(name_image) is not None:
         standing = HOSTILE
     elif not (Template(f"{RESOURCE_DIR}/observer.png", threshold=0.92, resolution=(w, h)).match_in(name_image) or
-              Template(f"{RESOURCE_DIR}/observer_name.png", threshold=0.86, resolution=(w, h)).match_in(name_image)):
+              Template(f"{RESOURCE_DIR}/observer_name.png", threshold=0.90, resolution=(w, h)).match_in(name_image)):
         standing = NEUTRAL
 
     logger.debug(f'standing: {standing}')
     if logger.level <= logging.DEBUG:
-        results = Template(f"{RESOURCE_DIR}/red_mark.png", threshold=0.80, resolution=(w, h)).match_all_in(name_image)
+        results = Template(f"{RESOURCE_DIR}/observer_name.png", threshold=0.80, resolution=(w, h)).match_all_in(name_image)
         logger.debug(results)
         show_image(name_image)
 
