@@ -5,3 +5,4 @@ EVE Echoes Discord Bot
 1. `discord`
 2. `opencv-python`
 3. `airtest`
+4. `pyaudio`
