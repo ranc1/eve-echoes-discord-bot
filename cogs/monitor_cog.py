@@ -1,7 +1,7 @@
 import discord
 import asyncio
 from utils import monitor
-# import winsound
+from utils import beep_player
 import logging
 import os
 import time
@@ -17,8 +17,7 @@ def sound_alarm(count):
     frequency = 440
     duration_in_millis = 250
     for i in range(count):
-        # winsound.Beep(frequency, int(duration_in_millis))
-        os.system(f'play --no-show-progress --null synth {duration_in_millis / 1000} sine {frequency}')
+        beep_player.play(frequency, duration_in_millis / 1000)
 
 
 class MonitorCog(commands.Cog):
@@ -79,6 +78,28 @@ class MonitorCog(commands.Cog):
 
     @tasks.loop()
     async def run_bot_task(self):
+        try:
+            if self.__scan_unhealthy():
+                sound_alarm(3)
+
+            await self.__deferred_monitor_task()
+
+            # local safe. additional sleep to save CPU.
+            sleep_time = 10 if self.prev_hostile_count + self.prev_neutral_count == 0 else 5
+            await asyncio.sleep(sleep_time)
+        except Exception as e:
+            logger.warning('Monitor task failed!', e)
+
+    @run_bot_task.before_loop
+    async def before_run_bot_task(self):
+        await self.bot.wait_until_ready()
+        monitor.initialize_device()
+        logger.info('Device connected. Start monitoring...')
+
+    def __scan_unhealthy(self):
+        return time.time() - self.last_successful_scan > 60
+
+    async def __deferred_monitor_task(self):
         local_details = monitor.identify_local_in_overview()
         if local_details is not None:
             hostile_count = local_details[monitor.HOSTILE]
@@ -121,18 +142,3 @@ class MonitorCog(commands.Cog):
                 self.prev_neutral_count = chat_neutral_count
 
             self.last_successful_scan = time.time()
-
-        if self.__scan_unhealthy():
-            sound_alarm(3)
-
-        sleep_time = 10 if self.prev_hostile_count + self.prev_neutral_count == 0 else 5  # local safe. additional sleep to save CPU.
-        await asyncio.sleep(sleep_time)
-
-    @run_bot_task.before_loop
-    async def before_run_bot_task(self):
-        await self.bot.wait_until_ready()
-        monitor.initialize_device()
-        logger.info('Device connected. Start monitoring...')
-
-    def __scan_unhealthy(self):
-        return time.time() - self.last_successful_scan > 60

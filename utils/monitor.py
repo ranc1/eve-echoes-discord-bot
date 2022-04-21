@@ -215,4 +215,4 @@ def initialize_device():
     # android://127.0.0.1:5037/emulator-5554?cap_method=MINICAP&&ori_method=MINICAPORI&&touch_method=MINITOUCH
     # android://127.0.0.1:5037/127.0.0.1:7555?cap_method=JAVACAP&&ori_method=MINICAPORI&&touch_method=MINITOUCH
     airtest.auto_setup(__file__, devices=[
-        "android://127.0.0.1:5037/emulator-5554?cap_method=MINICAP&&ori_method=MINICAPORI&&touch_method=MINITOUCH"])
+        "android://127.0.0.1:5037/127.0.0.1:7555?cap_method=JAVACAP&&ori_method=MINICAPORI&&touch_method=MINITOUCH"])
