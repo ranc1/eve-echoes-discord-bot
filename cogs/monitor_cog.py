@@ -80,6 +80,7 @@ class MonitorCog(commands.Cog):
     async def run_bot_task(self):
         try:
             if self.__scan_unhealthy():
+                logger.warning(f'Monitor is down. Last scan: {time.ctime(self.last_successful_scan)} PST')
                 sound_alarm(3)
 
             await self.__deferred_monitor_task()
@@ -107,11 +108,12 @@ class MonitorCog(commands.Cog):
             friendly_count = local_details[monitor.FRIENDLY]
             total_count = hostile_count + neutral_count + friendly_count
 
+            # Alarm early, but may not be accurate.
             sound_times = min(hostile_count + neutral_count, 3)
             if self.sound and sound_times > 0:
                 sound_alarm(sound_times)
 
-            if hostile_count != self.prev_hostile_count or neutral_count != self.prev_neutral_count or total_count >= 7:
+            if hostile_count != self.prev_hostile_count or neutral_count != self.prev_neutral_count or total_count >= 9:
                 local_standings = monitor.identify_local_in_chat()
 
                 chat_hostile_count = len(local_standings[monitor.HOSTILE])

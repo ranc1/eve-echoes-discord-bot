@@ -1,9 +1,11 @@
 import argparse
+import logging
 import os
 
 import discord
 from discord.ext import commands
-import logging
+
+from cogs.cap_monitor_cog import CapMonitorCog
 from cogs.monitor_cog import MonitorCog
 
 CORP_DISCORD_CHANNEL = 918237769447399456
@@ -22,7 +24,10 @@ def main():
 
     bot = NineLivesEveBot(command_prefix='$', intents=intents)
 
-    bot.add_cog(MonitorCog(bot, sound=sound, debug_mode=debug_mode, discord_report_channel=CORP_DISCORD_CHANNEL))
+    # enemy_monitor_cog = MonitorCog(bot, sound=sound, debug_mode=debug_mode, discord_report_channel=CORP_DISCORD_CHANNEL)
+    cap_monitor_cog = CapMonitorCog(bot, CORP_DISCORD_CHANNEL)
+
+    bot.add_cog(cap_monitor_cog)
     bot.run(token)
 
 

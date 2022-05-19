@@ -25,6 +25,8 @@ def report(local_standings):
         airtest.sleep(1)  # Wait for screen to move into position.
         airtest.touch((150, 1050))
         airtest.text("Clear")
+        airtest.touch(EMPTY_POSITION_IN_CHAT)  # Touch empty position to enter the text.
+        airtest.sleep(1)  # Wait for input banner to disappear.
     else:
         for x, y in local_standings[HOSTILE]:
             airtest.touch((x, y + LOCAL_PLAYER_TOP_OFFSET))
@@ -34,8 +36,8 @@ def report(local_standings):
 
         airtest.touch(Template(f"{RESOURCE_DIR}/location_tab.png", threshold=0.92, resolution=(1440, 1080)))
         airtest.touch((400, 600))  # current system
+        airtest.touch(EMPTY_POSITION_IN_CHAT)  # Touch empty position to go back to chat.
 
-    airtest.touch(EMPTY_POSITION_IN_CHAT)
     airtest.touch(Template(f"{RESOURCE_DIR}/corp_chat.png", threshold=0.78, resolution=(1440, 1080)))
     airtest.sleep(1)  # Wait for chat tab to switch.
     airtest.touch(Template(f"{RESOURCE_DIR}/send_button.png", threshold=0.92, resolution=(1440, 1080)))
@@ -44,17 +46,6 @@ def report(local_standings):
 def close_chat():
     airtest.touch(EMPTY_POSITION_IN_CHAT)
     airtest.touch(Template(f"{RESOURCE_DIR}/close_button.png", threshold=0.92, resolution=(1440, 1080)))
-
-
-def report_discord(discord_client, local_standings):
-    hostile_count = len(local_standings[HOSTILE])
-    neutral_count = len(local_standings[NEUTRAL])
-
-    if hostile_count + neutral_count == 0:
-        discord_client.send_message('Clear')
-    else:
-        message = f'Hostile: {hostile_count}, Neutral: {neutral_count}'
-        discord_client.send_message(message, image=f'{SCREENSHOT_DIR}/screen_local.png')
 
 
 def open_chat_local():
@@ -70,7 +61,7 @@ def get_local_overview():
     screen = cv2.imread(screenshot_file_name, cv2.IMREAD_UNCHANGED)
 
     local_tab_up = Template(f"{RESOURCE_DIR}/local_overview_top.png", threshold=0.88, resolution=(1440, 1080)).match_all_in(screen)
-    local_tab_bottom = Template(f"{RESOURCE_DIR}/local_overview_bottom.png", threshold=0.92, resolution=(1440, 1080)).match_all_in(screen)
+    local_tab_bottom = Template(f"{RESOURCE_DIR}/local_overview_bottom.png", threshold=0.88, resolution=(1440, 1080)).match_all_in(screen)
 
     if local_tab_up and local_tab_bottom:
         (_, (local_tab_left_line, local_tab_top_line), (local_tab_right_line, _), _) = local_tab_up[0].get('rectangle')
